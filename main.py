@@ -23,12 +23,15 @@ try:
 except FileNotFoundError:
     knowledge_base = {"questions": []}
 
-try:
-    with open('knowledge_base.json', 'r') as file:
-        knowledge_base = json.load(file)
-except FileNotFoundError:
-    knowledge_base = {"questions": []}
-
+personalities = {
+    "Hikari": {"relationship_status": "amical"},
+    "Viktoria": {"relationship_statuts": "ex petite amie"},
+    "Alex": {"relationship_statuts": "bassiste"},
+    "Neil": {"relationship_statuts": "batteur"},
+    "John": {"relationship_statuts": "manageur"},
+    "Min-jun": {"relationship_statuts": "père de Hikari"},
+    "Greed": {"relation_statuts": "fanfiction de Hikari"}
+}
 def preprocess_text(text):
     return text.lower()
 
