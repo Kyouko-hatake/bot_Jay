@@ -12,6 +12,9 @@ knowledge_base = {"questions": []}
 memory = []
 mood_jay = "neutre"
 mood_hikari = "neutre"
+est_amoureux = False
+longchain_agent = {"envies": ["amour", "manger"], "recherches": ["Motionless in white, Caliban"], "intérêts": ["metalband", "Fanfiction", "guitare"]}
+
 
 gpt2_tokenizer = GPT2Tokenizer.from_pretrained(r"E:\New_local\Jay\models\124M")
 gpt2_model = GPT2LMHeadModel.from_pretrained("gpt2")
@@ -68,18 +71,24 @@ def analyze_sentiment_gpt2(text):
     outputs = gpt2_model(**inputs)
     logits = outputs.logits
 
-    predicted_class = torch.argmax(logits, dim=1).numpy().flatten()
-    if predicted_class.size == 1:
-        predicted_class = predicted_class[0]
-    else:
-        print(f"Warning: predicted_class has more than one element: {predicted_class}")
-        predicted_class = predicted_class[0]
+    predicted_classes = torch.argmax(logits, dim=1).numpy()
 
-    labels = ["NEGATIVE", "POSITIVE"]
-    sentiment_label = labels[int(predicted_class)]
-    sentiment_score = torch.nn.functional.softmax(logits, dim=1).detach().numpy()[0][int(predicted_class)]
+    if predicted_classes.size == 0:
+        print(f"Warning: Unable to determine predicted_class: {predicted_classes}")
+        return "UNKNOWN", 0.5
+
+    sentiment_label = "UNKNOWN"
+    sentiment_score = 0.5
+
+    if isinstance(predicted_classes, int):
+        predicted_class = predicted_classes
+        labels = ["NEGATIVE", "POSITIVE"]
+        
+        if isinstance(predicted_class, int):
+            sentiment_label = labels[predicted_class]
+            sentiment_score = torch.nn.functional.softmax(logits, dim=1).detach().numpy()[0][predicted_class]
+
     return sentiment_label, sentiment_score
-
 
 def recognize_person(text):
     doc = nlp(text)
@@ -132,6 +141,17 @@ def chat_jay():
     while True:
         try:
             user_input = input('Hikari: ')
+            sentiment_label, sentiment_score = analyze_sentiment_gpt2(user_input)
+            if sentiment_score > 0.5:
+                mood_hikari = "heureux"
+                if est_amoureux:
+                    print("Jay: C'est agréable de te voir de bonne humeur, Hikari")
+            elif sentiment_score < -0.5:
+                mood_hikari = "fâché"
+                if est_amoureux:
+                    print("Jay: Pourquoi es-tu fâchée, Hikari ? Parlons-en.")
+            else:
+                mood_hikari = "neutre"
 
             if user_input.lower() == 'quitter':
                 break
@@ -167,10 +187,18 @@ def chat_jay():
         except KeyboardInterrupt:
             print("\nJay: Attends, tu veux vraiment quitter? Si oui, tape 'quitter'.")
 
-def generate_response(person, mood):
+def generate_response(person, mood, is_jaloux, est_amoureux, sentiment_score):
+    global mood_hikari
+
+    if sentiment_score > 0.5:
+        mood_hikari = "heureux"
+
     if mood == 'positif':
         if person == 'Hikari':
-            return "Jay: Salut Hikari, comment ça va?"
+            if est_amoureux:
+                return "Jay: Salut ma belle, comment ça va?"
+            elif is_jaloux:
+                return "Jay: Salut Hikari, tu étais avec qui ?"
         elif person == 'Viktoria':
             return "Jay: Qu'est-ce que tu veux, Viktoria?"
         else:
